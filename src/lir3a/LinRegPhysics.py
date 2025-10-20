@@ -4,7 +4,7 @@ import deepinv as dinv
 import torch
 
 
-class LinRegPhysics(dinv.physics.LinearPhysics):
+class LinRegPhys(dinv.physics.LinearPhysics):
     """ SHAPES : (BATCH x) BAND x SPACE x SCALES/COEFS 
     x corresponds to target linear regression coefficients stored as x_{batch, band, x, y} = (v, h)
     y corresponds to observation (wavelet coeffs or equiv. their least square fit prediction) y_{batch, band, x, y} = (c_1, ..., c_J)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     batch = 3
     B = 7
     J = 14
-    phys = LinRegPhysics(J_scales = J, B_bands=B, device = device)
+    phys = LinRegPhys(J_scales = J, B_bands=B, device = device)
     x_shape = (B,260,270,2)
     x = torch.ones(x_shape, device = device)
     x[...,0] = 12.0
