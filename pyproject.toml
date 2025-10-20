@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=2.0",
-  "deepinv>=3.0"
+  "deepinv>=0.3.0"
 ]
 
 [project.urls]
@@ -44,3 +44,4 @@ include = ["lir3a*"]
 [tool.setuptools_scm]
 version_scheme = "release-branch-semver"
 local_scheme = "node-and-date"
+write_to = "src/lir3a/_version.py"
