@@ -2,7 +2,7 @@
 
 import torch
 import deepinv as dinv
-import LinRegPhysics as LR
+import lir3a.LinRegPhysics as LR
 
 
 

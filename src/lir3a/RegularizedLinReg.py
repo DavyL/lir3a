@@ -9,7 +9,8 @@ import matplotlib.pylab as plt
 
 def CP(K_steps, x, x_tilde, u, y, F, G, L, lambd, sigma, tau, rho):
     """
-    Algorithm to minimize F(x, y) + lambd*G(Lx).
+    Strongly convex Chambolle-Pock algorithm to minimize F(x, y) + lambd*G(Lx).
+    K_steps : number of steps
     x, x_tilde : primal and inertial variables
     u : dual variable
     F, G : Data fidelity and prior

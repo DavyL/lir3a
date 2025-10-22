@@ -4,11 +4,7 @@ import scipy.signal as sg
 import numpy as np
 
 def apply_mask(z_1,z_2,mask):
-    het_texture = z_1.copy()
-    for x in range(het_texture.shape[0]):
-        for y in range(het_texture.shape[1]):
-            het_texture[x,y] = mask[x,y]*z_2[x,y] + (1.0-mask[x,y])*z_1[x,y]  
-            ## return np.multiply(mask, z_2) + np.multiply(1.0 - mask, z_1) should work as well 
+    het_texture = z_1 + mask * (z_2 - z_1)
     return het_texture  
 
 

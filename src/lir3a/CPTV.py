@@ -2,18 +2,18 @@
 
 import torch 
 import deepinv as dinv
-from LinRegPhysics import LinRegPhys
-from LinRegDataFid import BatchedMultiScaleDF
-from FinDiffPhysics import NablaPhys
+from lir3a.LinRegPhysics import LinRegPhys
+from lir3a.LinRegDataFid import BatchedMultiScaleDF
+from lir3a.FinDiffPhysics import NablaPhys
 from deepinv.optim import L12Prior
 
 class LinRegCP(torch.nn.Module):
     def __init__(self, J_scales, B_bands, rho, lambd, K_steps, R_restarts, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.lin_reg_phys = LinRegPhys(J_scales = J, B_bands=B, device = device)
+        self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=B_bands, device = device)
 
-        self.data_fidelity = BatchedMultiScaleDF(lin_reg_phys)
+        self.data_fidelity = BatchedMultiScaleDF(self.lin_reg_phys)
         self.prior = L12Prior(l2_axis=(1,-2,-1))
 
         self.fin_diff_phys = NablaPhys()
@@ -57,7 +57,7 @@ class LinRegCP(torch.nn.Module):
         sigma   = self.sigma_init
         tau     = self.tau_init
 
-        for k in range(K_steps):
+        for k in range(self.K_steps):
             u_next = self.prior.prox_conjugate(u + sigma * self.fin_diff_phys.A(x_tilde), gamma = sigma, lamb = self.elambda)
             x_next = self.data_fidelity.prox(x - tau*self.fin_diff_phys.A_adjoint(u_next), y, gamma = tau)
 
