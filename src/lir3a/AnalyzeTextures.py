@@ -14,13 +14,18 @@ class WavCoefs():
     F_pw is a B x 1 x 1 x 2 tensor corresponding correspond to the spatial average value of F (log first, regression and mean last)
     F_glob is a B x 1 x 1 x 2 tensor corresponding correspond to the value of F computed over spatially averaged L (mean first, log and regression last)
     """
-    def __init__(self, X, J_scales, device):
+    def __init__(self, X, J_scales, device, crop = False):
         self.X = X
         self.image_size = X.shape
         self.J_scales   = J_scales
         self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=6, device = device)
-
-        self.C      = torch.tensor(self.compute_dtcwt(X), device = device)
+        if crop :
+            self.crop_width = -2**(J_scales - 1)
+            self.C      = torch.tensor(self.compute_dtcwt(X), device = device)[:,:self.crop_width, :self.crop_width, ...]
+        else :
+            self.crop_width = -1
+            self.C      = torch.tensor(self.compute_dtcwt(X), device = device)
+            
         self.L      = torch.log2(torch.abs(self.C)).to(dtype = torch.float32)
         self.F      = self.compute_features_from_coefs(self.L)
         self.F_glob = self.compute_global_features_from_avg_coefs(self.C)

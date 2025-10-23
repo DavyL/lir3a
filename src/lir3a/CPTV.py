@@ -4,19 +4,22 @@ import torch
 import deepinv as dinv
 from lir3a.LinRegPhysics import LinRegPhys
 from lir3a.LinRegDataFid import BatchedMultiScaleDF
-from lir3a.FinDiffPhysics import NablaPhys
+from lir3a.FinDiffPhysics import NablaPhys, WeightedNablaPhys
 from deepinv.optim import L12Prior
 
 class LinRegCP(torch.nn.Module):
-    def __init__(self, J_scales, B_bands, rho, lambd, K_steps, R_restarts, device, *args, **kwargs):
+    def __init__(self, J_scales, B_bands, rho, lambd, K_steps, R_restarts, learn_weights, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=B_bands, device = device)
+        self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=B_bands,  device = device)
 
         self.data_fidelity = BatchedMultiScaleDF(self.lin_reg_phys)
         self.prior = L12Prior(l2_axis=(1,-2,-1))
 
-        self.fin_diff_phys = NablaPhys()
+        if learn_weights :
+            self.fin_diff_phys = WeightedNablaPhys(C= B_bands, F = 2)
+        else:
+            self.fin_diff_phys = NablaPhys()
 
         self.sigma_init   = 0.5   /   torch.sqrt(torch.tensor(2.0))
         self.tau_init     = 0.5   /   torch.sqrt(torch.tensor(2.0))
@@ -83,6 +86,48 @@ class LinRegCP(torch.nn.Module):
         return df+reg
     
 
+def make_param_groups(model, lr_main: float, lr_lambda: float, lr_weights: float):
+    """
+    Build parameter groups for an optimizer, assigning different learning rates to:
+        - general model parameters      -> lr_main
+        - lambda (model.lambd)          -> lr_lambda
+        - WeightedNablaPhys parameters  -> lr_weights
+
+    Args:
+        model: LinRegCP instance (or compatible)
+        lr_main:    learning rate for all other parameters
+        lr_lambda:  learning rate for model.lambd
+        lr_weights: learning rate for model.fin_diff_phys (if WeightedNablaPhys)
+
+    Returns:
+        List of parameter-group dicts ready to pass to an optimizer.
+    """
+
+    param_groups = []
+
+    # 1️⃣ Base parameters (everything except lambda and fin_diff_phys)
+    base_params = [
+        p for n, p in model.named_parameters()
+        if not (n.startswith("lambd") or n.startswith("fin_diff_phys"))
+    ]
+    if base_params:
+        param_groups.append({"params": base_params, "lr": lr_main})
+
+    # 2️⃣ Lambda parameter (if learnable)
+    if hasattr(model, "lambd") and isinstance(model.lambd, torch.nn.Parameter):
+        param_groups.append({"params": [model.lambd], "lr": lr_lambda})
+
+    # 3️⃣ WeightedNablaPhys parameters (if present and learnable)
+    if hasattr(model, "fin_diff_phys"):
+        fin_diff_phys = model.fin_diff_phys
+        # Only include if it's actually a WeightedNablaPhys (has parameters)
+        if any(True for _ in fin_diff_phys.parameters()):
+            param_groups.append({
+                "params": fin_diff_phys.parameters(),
+                "lr": lr_weights
+            })
+
+    return param_groups
 #%% 
 if __name__ == "__main__":
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -96,7 +141,7 @@ if __name__ == "__main__":
     x_true[...,1] = 1.2
     x_true[..., 300:450, : ,1] = 1.0
     x_obs = x_true 
-    lin_reg_phys = LinRegPhys(J_scales = J, B_bands=B, device = device)
+    lin_reg_phys = LinRegPhys(J_scales = J, B_bands=B, learn_weights = False, device = device)
 
     y = lin_reg_phys.A(x_obs)
     eps = torch.randn_like(y)
