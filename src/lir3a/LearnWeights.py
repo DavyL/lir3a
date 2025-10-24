@@ -100,9 +100,6 @@ if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt
 
-    def normalize_field(X):
-        return (X - np.mean(X))#/np.var(X)
-
     from lir3a.GenTextures import gen_hfbf
     from lir3a.GenMasks import gen_brownian_square_mask
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"

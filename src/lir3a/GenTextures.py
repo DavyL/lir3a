@@ -70,6 +70,9 @@ def gen_afbf(N,  return_field = False):
 
 
 
+def normalize_field(X):
+    return (X - np.mean(X))#/np.var(X)
+
        
 def display_params(z, Z, path, filename, title = ""):
     theta_list = np.linspace(-np.pi,np.pi,2000, dtype=float)
