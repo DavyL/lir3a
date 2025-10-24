@@ -8,3 +8,5 @@ In the repository root
 'python -m pip install .'
 
 The following library is required to compute undecimated complex dual-tree wavelet coefficients : (https://github.com/DavyL/undecimated_dtcwt)
+
+External libraries required : 'torch deepinv scikit-learn wandb h5py'
