@@ -20,13 +20,13 @@ class WavCoefs():
         self.J_scales   = J_scales
         self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=6, device = device)
         if crop :
-            self.crop_width = -2**(J_scales - 1)
+            self.crop_width = -2**(J_scales)
             self.C      = torch.tensor(self.compute_dtcwt(X), device = device)[:,:self.crop_width, :self.crop_width, ...]
         else :
             self.crop_width = -1
             self.C      = torch.tensor(self.compute_dtcwt(X), device = device)
             
-        self.L      = torch.log2(torch.abs(self.C)).to(dtype = torch.float32)
+        self.L      = torch.log2(torch.square(torch.abs(self.C)).to(dtype = torch.float32))
         self.F      = self.compute_features_from_coefs(self.L)
         self.F_glob = self.compute_global_features_from_avg_coefs(self.C)
 
@@ -40,7 +40,7 @@ class WavCoefs():
         return self.lin_reg_phys.A_dagger(L)
 
     def compute_global_features_from_avg_coefs(self, C):
-        avg = torch.log2(torch.mean(torch.abs(C).to(dtype = torch.float32), dim = (1,2), keepdim = True))
+        avg = torch.log2(torch.mean(torch.square(torch.abs(C).to(dtype = torch.float32)), dim = (1,2), keepdim = True))
         return self.lin_reg_phys.A_dagger(avg)
 # %%
 if __name__ == "__main__":

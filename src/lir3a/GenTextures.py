@@ -32,10 +32,13 @@ def gen_efbf(N,  H, t=1.0, d=1.0, return_field = False):
     # Define the field to be simulated and coordinates where to simulate.
     field = tbfield('efbf')
     coord = afbf.coordinates(N)
+    #field.hurst.ChangeParameters(fparam=np.array([[H]]))
     field.hurst.ChangeParameters(fparam=np.array([[H]]))
     field.topo.ChangeParameters(fparam=np.array([0, 1]), finter=np.array([-T, T]))
     # Translate the topothesy function to be at the right orientation.
     field.topo.ApplyTransforms(translate=-D)
+    #field.NormalizeModel()
+
     simu = field.Simulate(coord)
     # Simulate the field.
     z = simu.values.reshape(simu.M)
@@ -43,7 +46,7 @@ def gen_efbf(N,  H, t=1.0, d=1.0, return_field = False):
         return z, field
     return z
     
-def gen_afbf(N,  return_field = False):
+def gen_afbf(N,  return_field = False, amin = 0.2, amax = 0.8, tau_min = 1.0, tau_max=8.0, translate_h = 0.0, translate_tau = 0.0):
     # Define the field.
     # Mode of simulation for step values (alt, 'unif', 'unifmax', or 'unifrange').
     simstep = 'unifmin'
@@ -51,13 +54,33 @@ def gen_afbf(N,  return_field = False):
     simbounds = 'unif'
 
     # Define the field to be simulated and coordinates where to simulate.
-    field = tbfield('afbf-smooth')
+    #field = tbfield('afbf-smooth')
     coord = afbf.coordinates(N)
-    field.hurst.SetStepSampleMode(mode_cst=simstep, mode_int=simbounds)
+    #field.hurst.SetStepSampleMode(mode_cst=simstep, mode_int=simbounds)
     
+    #field.hurst.ChangeParameters()
+    hurst = afbf.perfunction('step-smooth', 2)
+    topo = afbf.perfunction('step-smooth', 2)
+    hurst.ChangeParameters(fparam=np.array([amin, amax]))
+    topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
+    #hurst.ChangeParameters(fparam=np.array([amin, amax]))
+    hurst.ApplyTransforms(translate = translate_h)
+    topo.ApplyTransforms(translate = translate_tau)
+    #field.topo.ChangeParameters()
+    #topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
+    #topo.ApplyTransforms(translate = translate_tau)
+    #topo.Display(1)
+    #hurst.Display(1)
+    #field.topo.SetStepSampleMode(mode_cst=simstep, mode_int=simbounds)
+    #field.topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
+    #field.topo.ApplyTransforms(translate = translate_tau)
+    field = tbfield('my_afbf', topo, hurst)
+
+    #field.NormalizeModel()
+
     #np.random.seed(seed)
-    field.hurst.ChangeParameters()
-    field.topo.ChangeParameters()
+    #field.hurst.ChangeParameters()
+    #field.topo.ChangeParameters()
 
     #np.random.seed(seed)
     field.EvaluateTurningBandParameters()
@@ -128,7 +151,9 @@ def display_params(z, Z, path, filename, title = ""):
     fig.set_tight_layout(True)
     fig.savefig(path + filename + '.pdf', transparent=True, dpi=600, format='pdf')
 
-def display_params_indiv(z, Z, path, filename, title = ""):
+    fig.savefig(path + filename + ".png", dpi=300, bbox_inches="tight")
+    fig.savefig(path + filename + ".svg", bbox_inches="tight")
+def display_params_indiv(z, Z, path, filename):
     theta_list = np.linspace(-np.pi,np.pi,2000, dtype=float)
     Z.hurst.Evaluate(theta_list)
 
@@ -154,13 +179,14 @@ def display_params_indiv(z, Z, path, filename, title = ""):
     xT=ax1.get_xticks()
     xL=['$0$',r'$\frac{\pi}{4}$',r'$\frac{\pi}{2}$',r'$\frac{3\pi}{4}$',r'$\pi$',r'$\frac{5\pi}{4}$',r'$\frac{3\pi}{2}$',r'$\frac{7\pi}{4}$']
     ax1.set_frame_on(False)
-    ax1.plot(theta_list, h)
+    ax1.plot(theta_list, h, linewidth=3)
     ax1.set_rmax(1.1)
-    ax1.set_rticks([0.25,0.5,0.75,1.0], ['', '', '', ''])
+    ax1.set_rticks([0.25,0.5,0.75,1.0], ['', '0.5', '', '1.0'])
     #ax1.set_ylabel(['a', 'b', 'c', 'd'])
     #ax1.set_rticks([1.0])
     ax1.set_rlabel_position(-35.5)  # Move radial labels away from plotted line
-    ax1.set_xticks(xT, xL)
+    ax1.set_xticks(xT)
+    ax1.set_xticklabels(xL, fontsize=14)
     ax1.grid(True)
 
 
@@ -173,13 +199,22 @@ def display_params_indiv(z, Z, path, filename, title = ""):
     xT=ax2.get_xticks()
     xL=['$0$',r'$\frac{\pi}{4}$',r'$\frac{\pi}{2}$',r'$\frac{3\pi}{4}$',r'$\pi$',r'$\frac{5\pi}{4}$',r'$\frac{3\pi}{2}$',r'$\frac{7\pi}{4}$']
     ax2.set_frame_on(False)
-    ax2.plot(theta_list, tau)
+    ax2.plot(theta_list, tau, linewidth = 3)
     ax2.set_rlim(0)
-    ax2.set_rscale('symlog')
+    #ax2.set_rscale('symlog')
+    
+    tau_min, tau_max = np.min(tau), np.max(tau)
+    r_start = 0.1 * tau_min if tau_min > 0 else 0.1
+    r_end = 1.1 * tau_max
+    r_ticks = np.linspace(r_start, r_end, 5)
+    ax2.set_rticks(r_ticks)
+    ax2.set_yticklabels([f"{r:.1g}" if r_idx in [1, len(r_ticks) -1] else ''  for r_idx, r in enumerate(r_ticks)])
     #ax2.set_rticks([1,4,16,64,128], ['$2^0$', '$2^2$','$2^4$','$2^6$','$2^7$'])
-    ax2.set_rticks([1,4,16,64,128], ['', '','','',''])
+    #ax2.set_rticks([1,4,16,64,128], ['', '','','',''])
     ax2.set_rlabel_position(-35.5)  # Move radial labels away from plotted line
-    ax2.set_xticks(xT, xL)
+    #ax2.set_xticks(xT, xL)
+    ax2.set_xticks(xT)
+    ax2.set_xticklabels(xL, fontsize=14)
     ax2.grid(True)
     #ax.set_title(f'$\tau_{idx}$', va='bottom')
 
@@ -189,6 +224,12 @@ def display_params_indiv(z, Z, path, filename, title = ""):
     fig1.savefig(path + filename + 'hurst' + '.pdf', transparent=True, dpi=600, format='pdf')
     fig2.set_tight_layout(True)
     fig2.savefig(path + filename + 'tau' + '.pdf', transparent=True, dpi=600, format='pdf')
+
+    fig1.savefig(path + filename + 'hurst' + ".png", dpi=300, bbox_inches="tight")
+    fig1.savefig(path + filename + 'hurst' + ".svg", bbox_inches="tight")
+    
+    fig2.savefig(path + filename + 'tau'+ ".png", dpi=300, bbox_inches="tight")
+    fig2.savefig(path + filename + 'tau' + ".svg", bbox_inches="tight")
 
 def RotateModel(field, rotation = 0.0, img_size = 512):
     
@@ -236,7 +277,7 @@ if __name__ == "__main__":
         axs[idx].imshow(fields_f[idx])
         axs[idx].axis(False)
     
-        display_params_indiv(fields_f[idx], fields_p[idx], ".", "fname", title = fields_n[idx])
+        display_params_indiv(fields_f[idx], fields_p[idx], ".", "fname")
 
 # %%
     rotation_list = [i*np.pi/10 for i in range(5)]

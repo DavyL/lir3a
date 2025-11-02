@@ -22,7 +22,9 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=2.0",
-  "deepinv>=0.3.0"
+  "deepinv>=0.3.0",
+  "wandb",
+  "h5py"
 ]
 
 [project.urls]

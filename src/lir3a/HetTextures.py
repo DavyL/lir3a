@@ -20,14 +20,14 @@ def get_bins(mask_true, mask_pred):
     return true_positive, true_negative, false_positive, false_negative
 
 class HetTexture():
-    def __init__(self, X1, X2, mask, J_scales, device, crop=False):
+    def __init__(self, X1, X2, mask, J_scales, device, crop=False, filter_length_mask = 51, sigma_mask = 1.0):
         self.img_size   = mask.shape
         self.J_scales   = J_scales
         self.device     = device
         self.X1     = X1
         self.X2     = X2
         self.mask   = mask
-        self.het_texture = apply_smoothed_mask(X1, X2, mask, filter_length = 51)
+        self.het_texture = apply_smoothed_mask(X1, X2, mask, filter_length_mask, sigma_mask)
         self.het_text_coefs = WavCoefs(self.het_texture, J_scales, device, crop = crop)
         
         self.lin_reg_phys   = LinRegPhys(J_scales = J_scales, B_bands=6, device = device)

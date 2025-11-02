@@ -7,28 +7,30 @@ from lir3a.LinRegDataFid import BatchedMultiScaleDF
 from lir3a.FinDiffPhysics import NablaPhys, WeightedNablaPhys
 from deepinv.optim import L12Prior
 
-class LinRegCP(torch.nn.Module):
-    def __init__(self, J_scales, B_bands, rho, lambd, K_steps, R_restarts, learn_weights, device, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        self.lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=B_bands,  device = device)
 
-        self.data_fidelity = BatchedMultiScaleDF(self.lin_reg_phys)
+
+class UnrolledCP(torch.nn.Module):
+    def __init__(self, A_phys, data_fid, C_channels = 3, F_features = 2, rho = 0.5, lambd = 100.0, K_steps = 1000, R_restarts = 0, learn_weights = False, device = "cpu", *args, **kwargs):
+        super().__init__()
+        
+        self.lin_reg_phys = A_phys
+        self.data_fidelity = data_fid
         self.prior = L12Prior(l2_axis=(1,-2,-1))
 
         if learn_weights :
-            self.fin_diff_phys = WeightedNablaPhys(C= B_bands, F = 2)
+            self.fin_diff_phys = WeightedNablaPhys(C= C_channels, F = F_features)
         else:
             self.fin_diff_phys = NablaPhys()
 
-        self.sigma_init   = 0.5   /   torch.sqrt(torch.tensor(2.0))
-        self.tau_init     = 0.5   /   torch.sqrt(torch.tensor(2.0))
+        self.sigma_init   = 0.5   /   torch.sqrt(C_channels * torch.tensor(2.0))
+        self.tau_init     = 0.5   /   torch.sqrt(C_channels * torch.tensor(2.0))
         self.rho    = rho
         self.lambd = torch.nn.Parameter(torch.tensor(lambd, device=device), requires_grad = True)
 
         self.K_steps   = K_steps
         self.R_restarts  = R_restarts
 
+        self.to(device)
 
     def forward(self, y, ret_crit = False):    
 
@@ -62,7 +64,7 @@ class LinRegCP(torch.nn.Module):
 
         for k in range(self.K_steps):
             u_next = self.prior.prox_conjugate(u + sigma * self.fin_diff_phys.A(x_tilde), gamma = sigma, lamb = self.elambda)
-            x_next = self.data_fidelity.prox(x - tau*self.fin_diff_phys.A_adjoint(u_next), y, gamma = tau)
+            x_next = self.data_fidelity.prox(x - tau*self.fin_diff_phys.A_adjoint(u_next), y, gamma = tau, physics = self.lin_reg_phys)
 
             chi     = 1.0   /   (torch.sqrt(1+2*self.rho*tau))
             tau     = tau * chi
@@ -85,6 +87,18 @@ class LinRegCP(torch.nn.Module):
 
         return df+reg
     
+
+class LinRegCP(UnrolledCP):
+    def __init__(self, J_scales, B_bands = 6,device = "cpu", *args, **kwargs):
+        lin_reg_phys = LinRegPhys(J_scales = J_scales, B_bands=B_bands,  device = device)
+        data_fidelity = BatchedMultiScaleDF(lin_reg_phys)
+        super().__init__(A_phys=lin_reg_phys, data_fid = data_fidelity, C_channels = B_bands, *args, **kwargs)
+
+class DenoisingCP(UnrolledCP):
+    def __init__(self, *args, **kwargs):
+        lin_reg_phys = dinv.physics.Denoising()
+        data_fidelity = dinv.optim.L2()
+        super().__init__(A_phys=lin_reg_phys, data_fid = data_fidelity, *args, **kwargs)
 
 def make_param_groups(model, lr_main: float, lr_lambda: float, lr_weights: float):
     """
@@ -175,4 +189,47 @@ if __name__ == "__main__":
     plt.figure()
     plt.hist(x_np[0,..., 1].flatten(), bins = 200)
     plt.hist(x_true_np[0,..., 1].flatten(), bins = 100)
+    # %%
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    C_channels = 3
+    file = "rof_seg_2_11/"
+
+    # %%
+    #brownian_mask = gen_brownian_square_mask(width = 125, scale = 25, img_size = 512)
+    x_true = torch.ones([512,512]).to(device)
+    sigma_noise = 1.0
+    noise_physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma = sigma_noise))
+    #x_true = torch.from_numpy(mask).float()  # -> [N_x, N_y]
+    x_true = x_true.unsqueeze(0).unsqueeze(0).unsqueeze(-1)  # -> [1, 1, N_x, N_y, 1]
+    x_true = x_true.repeat(1, 1, 1, 1, C_channels)           # -> [1, C_channels, N_x, N_y, 1]y       = noise_physics(x_true)
+    x_true += 1.0
+    x_true[...,0]   *= 0.25
+    x_true[...,1]   *= 0.5
+    x_true *= 0.5
+    y = noise_physics(x_true)
+    x_true_np = x_true.cpu().detach().numpy()
+    y_np = y.cpu().detach().numpy()
+#    plt.figure()
+#    plt.imshow(x_true[0,0])
+#    plt.axis('off')
+#
+#    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)  # supprime tout padding interne
+#    plt.savefig(file + 'x_true_field.png', bbox_inches='tight', pad_inches=0, dpi=300, transparent=True)
+#
+#    plt.figure()
+#    plt.imshow(y[0,0])
+#    plt.axis('off')
+#
+#    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)  # supprime tout padding interne
+#    plt.savefig(file + 'y_field.png', bbox_inches='tight', pad_inches=0, dpi=300 , transparent=True)
+
+
+
+    # %%
+    model = DenoisingCP(C_channels= 1, F_features = C_channels, rho = 0.5, lambd = 5.0, K_steps = 10000, R_restarts = 0, device = device)
+
+    model.sigma_init   = 0.5   /   (torch.sqrt(torch.tensor(2.0)))
+    model.tau_init     = 0.5   /   (torch.sqrt(torch.tensor(2.0)))
+    with torch.no_grad():
+        x, x_tilde, u, crit = model(y, ret_crit = True)
 # %%

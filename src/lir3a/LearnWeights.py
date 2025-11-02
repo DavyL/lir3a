@@ -8,7 +8,7 @@ from lir3a.HetTextures import HetTexture
 from lir3a.CPTV import LinRegCP, make_param_groups
 from lir3a.utils import update_h5py
 
-def RegularizeAndLearn(het_text, epochs, K_steps, R_restarts, learning_rate,  lambda_init, device, h5_filepath, learn_weights = False):
+def RegularizeAndLearn(het_text, epochs=10, K_steps=50, R_restarts=10, learning_rate=1e-1,  lambda_init = 1e2, device = "cpu", h5_filepath ="", learn_weights = False):
 
     model = LinRegCP(J_scales = het_text.J_scales, B_bands = 6, rho = 0.5, lambd = lambda_init, K_steps = K_steps, R_restarts = R_restarts, learn_weights = learn_weights, device = device)
 
