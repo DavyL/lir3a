@@ -40,7 +40,7 @@ class UnrolledCP(torch.nn.Module):
         crit_list = []
         with torch.no_grad():
             for r in range(self.R_restarts):
-                print(f'{r}/{self.R_restarts}')
+                #print(f'{r}/{self.R_restarts}')
                 x, x_tilde, u = self.R_step(x, y, x_tilde, u, crit_list)
 
         self.elambda    = torch.exp(self.lambd)
