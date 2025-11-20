@@ -52,10 +52,10 @@ if __name__ == "__main__":
     x_true[..., 150:300, : ,0] = 10.0
     x_true[...,1] = 1.2
     x_true[..., 300:450, : ,1] = 1.0
-    x_obs = x 
+
     lin_reg_phys = LinRegPhys(J_scales = J, B_bands=B, device = device)
 
-    y = lin_reg_phys.A(x_obs)
+    y = lin_reg_phys.A(x_true)
     eps = torch.randn_like(y)
     y = y + eps
 
