@@ -41,7 +41,7 @@ def RegularizeAndLearn(het_text, epochs=10, K_steps=50, R_restarts=10, learning_
     for key in config_dict:
         print(key)
         update_h5py(model_h5_savefile, key, config_dict[key])
-    wandb.init(name = "name", project=project, group = "group", config = config_dict)
+    #wandb.init(name = "name", project=project, group = "group", config = config_dict)
 
     ####### Training loop #######
     loss_list = []
@@ -75,17 +75,17 @@ def RegularizeAndLearn(het_text, epochs=10, K_steps=50, R_restarts=10, learning_
         crit_list.append(crit_list)
                 
         print(f'loss is {loss.item()},  lambda is {lambda_list[-1]}')
-        wandb.log({"epoch": epoch, "train_loss" : loss.item()})
+    #    wandb.log({"epoch": epoch, "train_loss" : loss.item()})
         
-        for name, param in model.named_parameters():
-            wandb.log({f"params/{name}": param.clone().cpu().detach().numpy()})  # Logging mean value
+    #    for name, param in model.named_parameters():
+    #        wandb.log({f"params/{name}": param.clone().cpu().detach().numpy()})  # Logging mean value
 
         torch.cuda.empty_cache()
-        wandb.log({"epoch_loss": epoch_loss})
-##Test
+    #    wandb.log({"epoch_loss": epoch_loss})
+
         print(f"Epoch [{epoch + 1}/{epochs}], Loss: {epoch_loss:.4f}")
 
-    wandb.finish()
+    #wandb.finish()
     #torch.save(model.state_dict(), savemodels_dir + model_name + '.pt')
     update_h5py(model_h5_savefile, 'train/learned_weights', weight_list)
     update_h5py(model_h5_savefile, 'train/loss_list', loss_list)
