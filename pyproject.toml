@@ -24,7 +24,10 @@ dependencies = [
   "numpy>=2.0",
   "deepinv>=0.3.0",
   "wandb",
-  "h5py"
+  "h5py",
+  "pyafbf",
+  "scikit-learn",
+  "imageio"
 ]
 
 [project.urls]
