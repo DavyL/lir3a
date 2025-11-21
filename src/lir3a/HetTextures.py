@@ -12,6 +12,33 @@ from lir3a.DKL import d_KL_sym_for_unnormalized
 
 from sklearn.cluster import KMeans
 
+def compute_K_means(pred, K =2):
+    """
+    pred: torch.Tensor or np.ndarray of shape (C, H, W, F)
+    K:    number of clusters
+    returns:
+        labels_hw: (H, W) integer labels in [0..K-1]
+        centers_c_f: (K, C, F) cluster centers reshaped
+        kmeans: fitted KMeans object
+    """
+    x = pred.detach().cpu().numpy()
+
+    assert x.ndim == 4, f"Expected pred of shape (C,H,W,F), got {x.shape}"
+
+    C, H, W, F = x.shape
+
+    # 2) reshape to (N_samples, N_features) = (H*W, C*F)
+    X = np.ascontiguousarray(x.transpose(1, 2, 0, 3).reshape(H * W, C * F))  # (H,W,C,F)->(H*W, C*F)
+
+    kmeans = KMeans(n_clusters=K, n_init="auto")
+
+    kmeans.fit(X)
+    labels = kmeans.labels_.reshape(H, W)
+
+    centers_cf = kmeans.cluster_centers_.reshape(K, C, F)
+    
+    return labels, centers_cf, kmeans
+
 def get_bins(mask_true, mask_pred):
     true_positive = np.sum(np.multiply(mask_true, mask_pred))
     true_negative = np.sum(np.multiply(1.0-mask_true, 1.0 - mask_pred))
@@ -122,27 +149,10 @@ class HetTexture():
         returns:
             labels_hw: (H, W) integer labels in [0..K-1]
             centers_c_f: (K, C, F) cluster centers reshaped
-            kmeans: fitted KMeans object
         """
-        x = pred.detach().cpu().numpy()
-
-        assert x.ndim == 4, f"Expected pred of shape (C,H,W,F), got {x.shape}"
-
-        C, H, W, F = x.shape
-
-        # 2) reshape to (N_samples, N_features) = (H*W, C*F)
-        X = np.ascontiguousarray(x.transpose(1, 2, 0, 3).reshape(H * W, C * F))  # (H,W,C,F)->(H*W, C*F)
-
-
-        kmeans = KMeans(n_clusters=K, n_init="auto")
-
-        kmeans.fit(X)
-        labels = kmeans.labels_.reshape(H, W)
-
-        centers_cf = kmeans.cluster_centers_.reshape(K, C, F)
-        
-        self.labels = labels
-        self.centers_cf = centers_cf
+        lab, bary, _ = compute_K_means(pred, K)
+        self.labels = lab
+        self.centers_cf = bary
 
         f_score, mcc = self.F_score(self.labels)
 
