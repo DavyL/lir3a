@@ -50,6 +50,7 @@ y = log_coefs[None,...] #Extending with an empty batch dimension
 
 x, x_tilde, u, crit = CP_alg(y, ret_crit = True)
 # %%
+# Plotting texture, criterion through iterations, histograms of h,v estimated values
 plt.figure()
 x_np = x.cpu().detach().numpy()
 fig, axs = plt.subplots(6, 2, figsize = [4, 2*6])

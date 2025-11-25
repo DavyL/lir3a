@@ -25,7 +25,7 @@ dependencies = [
   "deepinv>=0.3.0",
   "wandb",
   "h5py",
-  "pyafbf",
+  "pyafbf>=0.2.9",
   "scikit-learn",
   "imageio"
 ]
