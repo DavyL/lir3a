@@ -10,7 +10,7 @@ from deepinv.optim import L12Prior
 
 
 class UnrolledCP(torch.nn.Module):
-    def __init__(self, A_phys, data_fid, C_channels = 3, F_features = 2, rho = 0.5, lambd = 100.0, K_steps = 1000, R_restarts = 0, learn_weights = False, device = "cpu", *args, **kwargs):
+    def __init__(self, A_phys, data_fid, C_channels = 3, F_features = 2, rho = 0.5, lambd = -1.0, K_steps = 1000, R_restarts = 0, learn_weights = False, device = "cpu", *args, **kwargs):
         super().__init__()
         
         self.lin_reg_phys = A_phys

@@ -265,6 +265,7 @@ if __name__ == "__main__":
     H = 0.7
     t = 1
     d = 2
+    np.random.seed(0)
     hfbf_f, hfbf_p = gen_hfbf(256,0.5, True)
     efbf_f, efbf_p = gen_efbf(256, H, t, d, True)
     afbf_f, afbf_p = gen_afbf(256, True)
