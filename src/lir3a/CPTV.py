@@ -13,9 +13,9 @@ class UnrolledCP(torch.nn.Module):
     def __init__(self, A_phys, data_fid, C_channels = 3, F_features = 2, rho = 0.5, lambd = -1.0, K_steps = 1000, R_restarts = 0, learn_weights = False, device = "cpu", *args, **kwargs):
         super().__init__()
         
-        self.lin_reg_phys = A_phys
-        self.data_fidelity = data_fid
-        self.prior = L12Prior(l2_axis=(1,-2,-1))
+        self.lin_reg_phys   = A_phys
+        self.data_fidelity  = data_fid
+        self.prior          = L12Prior(l2_axis=(1,-2,-1))
 
         if learn_weights :
             self.fin_diff_phys = WeightedNablaPhys(C= C_channels, F = F_features)

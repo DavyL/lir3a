@@ -39,6 +39,18 @@ def compute_K_means(pred, K =2):
     
     return labels, centers_cf, kmeans
 
+def apply_fixed_kmeans(pred, kmeans):
+    """
+    pred: torch.Tensor de shape (C, H, W, F)
+    kmeans: KMeans déjà fit sur la première frame
+    """
+    x = pred.detach().cpu().numpy()
+    C, H, W, F = x.shape
+    X = x.transpose(1, 2, 0, 3).reshape(H * W, C * F)
+
+    labels = kmeans.predict(X).reshape(H, W)
+    return labels
+    
 def get_bins(mask_true, mask_pred):
     true_positive = np.sum(np.multiply(mask_true, mask_pred))
     true_negative = np.sum(np.multiply(1.0-mask_true, 1.0 - mask_pred))
