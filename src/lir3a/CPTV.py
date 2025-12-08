@@ -54,7 +54,7 @@ class UnrolledCP(torch.nn.Module):
     def set_init(self, y):
         x_init  = self.lin_reg_phys.A_dagger(y)
         x_tilde = torch.zeros_like(x_init)
-        u       = self.fin_diff_phys.A(x_init) 
+        u       = torch.zeros_like(self.fin_diff_phys.A(x_init))
 
         return x_init, x_tilde, u
 
@@ -72,12 +72,12 @@ class UnrolledCP(torch.nn.Module):
 
             x_tilde_next = (1+chi)*x_next - chi*x
 
-            crit_val = self.criterion(y, x_next)
-            crit_list.append(crit_val.cpu().detach().numpy()) 
-
             x       = x_next
             x_tilde = x_tilde_next
             u       = u_next
+            
+            crit_val = self.criterion(y, x_next)
+            crit_list.append(crit_val.cpu().detach().numpy()) 
                 
         return x, x_tilde, u
 
