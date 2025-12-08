@@ -68,7 +68,7 @@ plt.hist(x_np[0,..., 1].flatten(), bins = 200)
 
 
 # %%
-segmentation = compute_K_means(x[0])
+segmentation, _ = compute_K_means(x[0])
 
 plt.figure()
 plt.imshow(segmentation)
