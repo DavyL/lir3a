@@ -46,46 +46,52 @@ def gen_efbf(N,  H, t=1.0, d=1.0, return_field = False):
         return z, field
     return z
     
-def gen_afbf(N,  return_field = False, amin = 0.2, amax = 0.8, tau_min = 1.0, tau_max=8.0, translate_h = 0.0, translate_tau = 0.0):
-    # Define the field.
-    # Mode of simulation for step values (alt, 'unif', 'unifmax', or 'unifrange').
-    simstep = 'unifmin'
-    # Mode of simulation for step interval bounds (alt, 'nonunif').
-    simbounds = 'unif'
 
-    # Define the field to be simulated and coordinates where to simulate.
-    #field = tbfield('afbf-smooth')
+def gen_afbf(N,  return_field = False, amin = 0.2, amax = 0.8, tau_min = 1.0, tau_max=8.0, translate_h = 0.0, translate_tau = 0.0, width_h=np.pi/2.0, width_tau=np.pi/3.0, field_name="afbf", smooth_step=True):
+    """
+    Parameters
+    ----------
+    N : Size of the simulated field
+        ...
+    return_field : bool, whether to return the pyAFBF parametrization of the field
+        ...
+    amin : float, min value of hurst function
+        ...
+    amax : float, max value of hurst function
+        ...
+    tau_min : float, min value of topothesy function
+        ...
+    tau_max : float, max value of topothesy function
+        ...
+    translate_h : float, center of bumb of hurst function
+        ...
+    translate_tau : float, center of bumb of topothesy function
+        ...
+    width_h : float, width of bumb of hurst function
+        ...
+    width_tau : float, width of bumb of topothesy function
+        ...
+    field_name : str, name of the field (stored in the PyAFBF library)
+        ...
+    smooth_step : bool, if true, the bump function is smoothed
+        ...
+
+    """
     coord = afbf.coordinates(N)
-    #field.hurst.SetStepSampleMode(mode_cst=simstep, mode_int=simbounds)
-    
-    #field.hurst.ChangeParameters()
-    hurst = afbf.perfunction('step-smooth', 2)
-    topo = afbf.perfunction('step-smooth', 2)
-    hurst.ChangeParameters(fparam=np.array([amin, amax]))
-    topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
-    #hurst.ChangeParameters(fparam=np.array([amin, amax]))
+    hurst = afbf.perfunction('step', 2)
+    topo = afbf.perfunction('step', 2)
+    hurst.steptrans=smooth_step
+    topo.steptrans=smooth_step
+    hurst.ChangeParameters(fparam=np.array([amin, amax]), finter=np.array([-width_h, width_h]))
+    topo.ChangeParameters(fparam=np.array([tau_min, tau_max]), finter=np.array([-width_tau, width_tau]))
     hurst.ApplyTransforms(translate = translate_h)
     topo.ApplyTransforms(translate = translate_tau)
-    #field.topo.ChangeParameters()
-    #topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
-    #topo.ApplyTransforms(translate = translate_tau)
-    #topo.Display(1)
-    #hurst.Display(1)
-    #field.topo.SetStepSampleMode(mode_cst=simstep, mode_int=simbounds)
-    #field.topo.ChangeParameters(fparam=np.array([tau_min, tau_max]))
-    #field.topo.ApplyTransforms(translate = translate_tau)
-    field = tbfield('my_afbf', topo, hurst)
 
-    #field.NormalizeModel()
-
-    #np.random.seed(seed)
-    #field.hurst.ChangeParameters()
-    #field.topo.ChangeParameters()
-
-    #np.random.seed(seed)
+    field = tbfield(field_name, topo, hurst)
+    
+    # Simulate the field.
     field.EvaluateTurningBandParameters()
     simu = field.Simulate(coord)
-    # Simulate the field.
     z = simu.values.reshape(simu.M)
     if return_field:
         return z, field
